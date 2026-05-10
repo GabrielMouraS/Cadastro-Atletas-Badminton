@@ -1,5 +1,6 @@
 using BadmintonCadastro.Models;
 using BadmintonCadastro.Services;
+using BadmintonCadastro.UI.Components;
 
 namespace BadmintonCadastro.UI.Forms;
 
@@ -9,33 +10,26 @@ internal class CategoriasForm : Form
 
     public CategoriasForm()
     {
-        Text = "Categorias";
-        ClientSize = new System.Drawing.Size(720, 480);
-        StartPosition = FormStartPosition.CenterParent;
-        MinimumSize = new System.Drawing.Size(600, 350);
+        Text      = "Categorias";
+        BackColor = Estilos.ContentBg;
 
         ConfigurarGrid();
 
-        var btnNovo    = new Button { Text = "Novo",    Width = 90 };
-        var btnEditar  = new Button { Text = "Editar",  Width = 90 };
-        var btnExcluir = new Button { Text = "Excluir", Width = 90 };
+        var btnNovo    = Estilos.CriarBotao("Novo",    "novo");
+        var btnEditar  = Estilos.CriarBotao("Editar",  "editar");
+        var btnExcluir = Estilos.CriarBotao("Excluir", "excluir");
 
         btnNovo.Click    += BtnNovo_Click;
         btnEditar.Click  += BtnEditar_Click;
         btnExcluir.Click += BtnExcluir_Click;
         _grid.CellDoubleClick += (_, _) => BtnEditar_Click(null, EventArgs.Empty);
 
-        var btnPanel = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Bottom,
-            Height = 44,
-            Padding = new Padding(6),
-            FlowDirection = FlowDirection.LeftToRight
-        };
-        btnPanel.Controls.AddRange(new Control[] { btnNovo, btnEditar, btnExcluir });
+        var header    = Estilos.CriarHeader("Categorias");
+        var barraBtns = Estilos.CriarBarraBotoes(btnNovo, btnEditar, btnExcluir);
 
         Controls.Add(_grid);
-        Controls.Add(btnPanel);
+        Controls.Add(barraBtns);
+        Controls.Add(header);
 
         CarregarDados();
     }
@@ -51,12 +45,13 @@ internal class CategoriasForm : Form
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         _grid.AutoGenerateColumns = false;
         _grid.RowHeadersVisible = false;
-        _grid.BackgroundColor = System.Drawing.SystemColors.Window;
 
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Codigo",        HeaderText = "Código",          FillWeight = 15 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Descricao",     HeaderText = "Descrição",        FillWeight = 50 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Tipo",          HeaderText = "Tipo",             FillWeight = 20 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "ChavePlanilha", HeaderText = "Chave Planilha",   FillWeight = 15 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Codigo",        HeaderText = "Código",        FillWeight = 15 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Descricao",     HeaderText = "Descrição",     FillWeight = 50 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Tipo",          HeaderText = "Tipo",          FillWeight = 20 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "ChavePlanilha", HeaderText = "Chave",         FillWeight = 15 });
+
+        Estilos.EstilizarGrid(_grid);
     }
 
     private void CarregarDados() =>

@@ -1,5 +1,6 @@
 using BadmintonCadastro.Models;
 using BadmintonCadastro.Services;
+using BadmintonCadastro.UI.Components;
 
 namespace BadmintonCadastro.UI.Forms;
 
@@ -9,35 +10,30 @@ internal class TorneiosForm : Form
 
     public TorneiosForm()
     {
-        Text = "Torneios";
-        ClientSize = new System.Drawing.Size(860, 480);
-        StartPosition = FormStartPosition.CenterParent;
-        MinimumSize = new System.Drawing.Size(650, 350);
+        Text      = "Torneios";
+        BackColor = Estilos.ContentBg;
 
         ConfigurarGrid();
 
-        var btnNovo       = new Button { Text = "Novo",        Width = 90 };
-        var btnEditar     = new Button { Text = "Editar",      Width = 90 };
-        var btnExcluir    = new Button { Text = "Excluir",     Width = 90 };
-        var btnInscricoes = new Button { Text = "Inscrições…", Width = 110 };
+        var btnNovo       = Estilos.CriarBotao("Novo",         "novo");
+        var btnEditar     = Estilos.CriarBotao("Editar",       "editar");
+        var btnExcluir    = Estilos.CriarBotao("Excluir",      "excluir");
+        var btnInscricoes = Estilos.CriarBotao("Inscrições…",  "inscricoes");
+        var btnExportar   = Estilos.CriarBotao("Exportar…",    "exportar");
 
         btnNovo.Click       += BtnNovo_Click;
         btnEditar.Click     += BtnEditar_Click;
         btnExcluir.Click    += BtnExcluir_Click;
         btnInscricoes.Click += BtnInscricoes_Click;
+        btnExportar.Click   += BtnExportar_Click;
         _grid.CellDoubleClick += (_, _) => BtnEditar_Click(null, EventArgs.Empty);
 
-        var btnPanel = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Bottom,
-            Height = 44,
-            Padding = new Padding(6),
-            FlowDirection = FlowDirection.LeftToRight
-        };
-        btnPanel.Controls.AddRange(new Control[] { btnNovo, btnEditar, btnExcluir, btnInscricoes });
+        var header    = Estilos.CriarHeader("Torneios");
+        var barraBtns = Estilos.CriarBarraBotoes(btnNovo, btnEditar, btnExcluir, btnInscricoes, btnExportar);
 
         Controls.Add(_grid);
-        Controls.Add(btnPanel);
+        Controls.Add(barraBtns);
+        Controls.Add(header);
 
         CarregarDados();
     }
@@ -53,13 +49,14 @@ internal class TorneiosForm : Form
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         _grid.AutoGenerateColumns = false;
         _grid.RowHeadersVisible = false;
-        _grid.BackgroundColor = System.Drawing.SystemColors.Window;
 
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Nome",            HeaderText = "Nome",           FillWeight = 35 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "TipoFicha",       HeaderText = "Tipo",           FillWeight = 18 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "DataInicio",      HeaderText = "Data Início",    FillWeight = 15 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Local",           HeaderText = "Local",          FillWeight = 20 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "ResponsavelNome", HeaderText = "Responsável",    FillWeight = 12 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Nome",            HeaderText = "Nome",        FillWeight = 35 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "TipoFicha",       HeaderText = "Tipo",        FillWeight = 18 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "DataInicio",      HeaderText = "Data Início", FillWeight = 15 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Local",           HeaderText = "Local",       FillWeight = 20 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "ResponsavelNome", HeaderText = "Responsável", FillWeight = 12 });
+
+        Estilos.EstilizarGrid(_grid);
     }
 
     private void CarregarDados() =>
@@ -101,6 +98,13 @@ internal class TorneiosForm : Form
         var torneio = Selecionado();
         if (torneio == null) { MostrarAviso("Selecione um torneio."); return; }
         new InscricoesForm(torneio).ShowDialog(this);
+    }
+
+    private void BtnExportar_Click(object? s, EventArgs e)
+    {
+        var torneio = Selecionado();
+        if (torneio == null) { MostrarAviso("Selecione um torneio."); return; }
+        new ExportarFichaForm(torneio).ShowDialog(this);
     }
 
     private static void MostrarErro(Exception ex) =>

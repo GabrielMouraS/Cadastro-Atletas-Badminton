@@ -1,5 +1,6 @@
 using BadmintonCadastro.Models;
 using BadmintonCadastro.Services;
+using BadmintonCadastro.UI.Components;
 
 namespace BadmintonCadastro.UI.Forms;
 
@@ -11,43 +12,29 @@ internal class InscricoesForm : Form
     public InscricoesForm(Torneio torneio)
     {
         _torneio = torneio;
-        Text = $"Inscrições — {torneio.Nome}";
-        ClientSize = new System.Drawing.Size(1050, 520);
+        Text          = $"Inscrições — {torneio.Nome}";
+        ClientSize    = new System.Drawing.Size(1050, 540);
         StartPosition = FormStartPosition.CenterParent;
-        MinimumSize = new System.Drawing.Size(800, 380);
+        MinimumSize   = new System.Drawing.Size(800, 400);
+        BackColor     = Estilos.ContentBg;
 
         ConfigurarGrid();
 
-        var btnNovo    = new Button { Text = "Nova",    Width = 90 };
-        var btnEditar  = new Button { Text = "Editar",  Width = 90 };
-        var btnExcluir = new Button { Text = "Excluir", Width = 90 };
+        var btnNovo    = Estilos.CriarBotao("Nova",    "novo");
+        var btnEditar  = Estilos.CriarBotao("Editar",  "editar");
+        var btnExcluir = Estilos.CriarBotao("Excluir", "excluir");
 
         btnNovo.Click    += BtnNovo_Click;
         btnEditar.Click  += BtnEditar_Click;
         btnExcluir.Click += BtnExcluir_Click;
         _grid.CellDoubleClick += (_, _) => BtnEditar_Click(null, EventArgs.Empty);
 
-        var lblInfo = new Label
-        {
-            Text = $"Torneio: {torneio.Nome}  |  Tipo: {torneio.TipoFicha}",
-            Dock = DockStyle.Top,
-            Height = 28,
-            Padding = new Padding(6, 6, 0, 0),
-            Font = new System.Drawing.Font(System.Drawing.SystemFonts.DefaultFont!.FontFamily, 9f, System.Drawing.FontStyle.Bold)
-        };
-
-        var btnPanel = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Bottom,
-            Height = 44,
-            Padding = new Padding(6),
-            FlowDirection = FlowDirection.LeftToRight
-        };
-        btnPanel.Controls.AddRange(new Control[] { btnNovo, btnEditar, btnExcluir });
+        var header    = Estilos.CriarHeader("Inscrições", torneio.Nome);
+        var barraBtns = Estilos.CriarBarraBotoes(btnNovo, btnEditar, btnExcluir);
 
         Controls.Add(_grid);
-        Controls.Add(lblInfo);
-        Controls.Add(btnPanel);
+        Controls.Add(barraBtns);
+        Controls.Add(header);
 
         CarregarDados();
     }
@@ -63,16 +50,17 @@ internal class InscricoesForm : Form
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         _grid.AutoGenerateColumns = false;
         _grid.RowHeadersVisible = false;
-        _grid.BackgroundColor = System.Drawing.SystemColors.Window;
 
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Categoria",  HeaderText = "Categoria",        FillWeight = 12 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Atleta1",    HeaderText = "Atleta 1",         FillWeight = 25 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Atleta2",    HeaderText = "Atleta 2",         FillWeight = 25 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "RkInterno",  HeaderText = "RK Interno",       FillWeight = 10 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "RkEstadual", HeaderText = "RK Estadual",      FillWeight = 10 });
-        _grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Remanej",   HeaderText = "Remanej.",         FillWeight = 8  });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Valor",      HeaderText = "Valor (R$)",       FillWeight = 10 });
-        _grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Pago",      HeaderText = "Pago",             FillWeight = 7  });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "Categoria",  HeaderText = "Categoria",   FillWeight = 12 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "Atleta1",    HeaderText = "Atleta 1",    FillWeight = 25 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "Atleta2",    HeaderText = "Atleta 2",    FillWeight = 25 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "RkInterno",  HeaderText = "RK Interno",  FillWeight = 10 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "RkEstadual", HeaderText = "RK Estadual", FillWeight = 10 });
+        _grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Remanej",    HeaderText = "Remanej.",    FillWeight = 8  });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "Valor",      HeaderText = "Valor (R$)",  FillWeight = 10 });
+        _grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Pago",       HeaderText = "Pago",        FillWeight = 7  });
+
+        Estilos.EstilizarGrid(_grid);
     }
 
     private void CarregarDados()
@@ -88,8 +76,8 @@ internal class InscricoesForm : Form
             row.Cells["Categoria"].Value  = i.Categoria?.Codigo ?? i.CategoriaId.ToString();
             row.Cells["Atleta1"].Value    = i.Atleta1?.NomeCompleto ?? i.Atleta1Id.ToString();
             row.Cells["Atleta2"].Value    = i.Atleta2?.NomeCompleto ?? string.Empty;
-            row.Cells["RkInterno"].Value  = i.RkInterno?.ToString() ?? "-";
-            row.Cells["RkEstadual"].Value = i.RkEstadual?.ToString() ?? "-";
+            row.Cells["RkInterno"].Value  = i.RkInterno?.ToString() ?? "—";
+            row.Cells["RkEstadual"].Value = i.RkEstadual?.ToString() ?? "—";
             row.Cells["Remanej"].Value    = i.AceitaRemanejamento;
             row.Cells["Valor"].Value      = i.Valor.ToString("F2");
             row.Cells["Pago"].Value       = i.Pago;

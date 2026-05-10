@@ -1,5 +1,6 @@
 using BadmintonCadastro.Models;
 using BadmintonCadastro.Services;
+using BadmintonCadastro.UI.Components;
 
 namespace BadmintonCadastro.UI.Forms;
 
@@ -9,33 +10,27 @@ internal class EntidadesForm : Form
 
     public EntidadesForm()
     {
-        Text = "Entidades";
-        ClientSize = new System.Drawing.Size(750, 480);
-        StartPosition = FormStartPosition.CenterParent;
-        MinimumSize = new System.Drawing.Size(600, 350);
+        Text      = "Entidades";
+        BackColor = Estilos.ContentBg;
 
         ConfigurarGrid();
 
-        var btnNovo    = new Button { Text = "Novo",    Width = 90 };
-        var btnEditar  = new Button { Text = "Editar",  Width = 90 };
-        var btnExcluir = new Button { Text = "Excluir", Width = 90 };
+        var btnNovo    = Estilos.CriarBotao("Novo",    "novo");
+        var btnEditar  = Estilos.CriarBotao("Editar",  "editar");
+        var btnExcluir = Estilos.CriarBotao("Excluir", "excluir");
 
         btnNovo.Click    += BtnNovo_Click;
         btnEditar.Click  += BtnEditar_Click;
         btnExcluir.Click += BtnExcluir_Click;
         _grid.CellDoubleClick += (_, _) => BtnEditar_Click(null, EventArgs.Empty);
 
-        var btnPanel = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Bottom,
-            Height = 44,
-            Padding = new Padding(6),
-            FlowDirection = FlowDirection.LeftToRight
-        };
-        btnPanel.Controls.AddRange(new Control[] { btnNovo, btnEditar, btnExcluir });
+        var header   = Estilos.CriarHeader("Entidades");
+        var barraBtns = Estilos.CriarBarraBotoes(btnNovo, btnEditar, btnExcluir);
 
-        Controls.Add(_grid);      // Fill — deve ser adicionado antes do Bottom
-        Controls.Add(btnPanel);
+        // Ordem de adição: Fill primeiro, depois os DockStyle.Bottom e DockStyle.Top
+        Controls.Add(_grid);
+        Controls.Add(barraBtns);
+        Controls.Add(header);
 
         CarregarDados();
     }
@@ -51,17 +46,16 @@ internal class EntidadesForm : Form
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         _grid.AutoGenerateColumns = false;
         _grid.RowHeadersVisible = false;
-        _grid.BackgroundColor = System.Drawing.SystemColors.Window;
 
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Sigla",        HeaderText = "Sigla",        FillWeight = 15 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Sigla",        HeaderText = "Sigla",         FillWeight = 15 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "NomeCompleto", HeaderText = "Nome Completo", FillWeight = 55 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Cidade",       HeaderText = "Cidade",        FillWeight = 30 });
+
+        Estilos.EstilizarGrid(_grid);
     }
 
-    private void CarregarDados()
-    {
+    private void CarregarDados() =>
         _grid.DataSource = EntidadesService.Listar().ToList();
-    }
 
     private Entidade? Selecionada() =>
         _grid.SelectedRows.Count > 0 ? _grid.SelectedRows[0].DataBoundItem as Entidade : null;

@@ -1,68 +1,103 @@
 using BadmintonCadastro.Models;
 using BadmintonCadastro.Services;
+using BadmintonCadastro.UI.Components;
 
 namespace BadmintonCadastro.UI.Forms;
 
 internal class AtletasForm : Form
 {
     private readonly DataGridView _grid = new();
-    private readonly TextBox    _txtFiltroNome    = new() { Width = 200, PlaceholderText = "Nome..." };
-    private readonly ComboBox   _cmbFiltroSexo    = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 80 };
-    private readonly ComboBox   _cmbFiltroEntidade = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 160 };
+    private readonly TextBox  _txtFiltroNome     = new() { Width = 200, PlaceholderText = "Nome..." };
+    private readonly ComboBox _cmbFiltroSexo     = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 80 };
+    private readonly ComboBox _cmbFiltroEntidade = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 160 };
 
     public AtletasForm()
     {
-        Text = "Atletas";
-        ClientSize = new System.Drawing.Size(920, 520);
-        StartPosition = FormStartPosition.CenterParent;
-        MinimumSize = new System.Drawing.Size(700, 380);
+        Text      = "Atletas";
+        BackColor = Estilos.ContentBg;
 
         ConfigurarGrid();
         ConfigurarFiltros();
 
-        var btnNovo    = new Button { Text = "Novo",    Width = 90 };
-        var btnEditar  = new Button { Text = "Editar",  Width = 90 };
-        var btnExcluir = new Button { Text = "Excluir", Width = 90 };
+        var btnNovo    = Estilos.CriarBotao("Novo",    "novo");
+        var btnEditar  = Estilos.CriarBotao("Editar",  "editar");
+        var btnExcluir = Estilos.CriarBotao("Excluir", "excluir");
 
         btnNovo.Click    += BtnNovo_Click;
         btnEditar.Click  += BtnEditar_Click;
         btnExcluir.Click += BtnExcluir_Click;
         _grid.CellDoubleClick += (_, _) => BtnEditar_Click(null, EventArgs.Empty);
 
-        // Filtros
-        var filtroPanel = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Top,
-            Height = 40,
-            Padding = new Padding(6, 6, 6, 0),
-            FlowDirection = FlowDirection.LeftToRight
-        };
-        filtroPanel.Controls.Add(new Label { Text = "Nome:", AutoSize = true, Padding = new Padding(0, 6, 0, 0) });
-        filtroPanel.Controls.Add(_txtFiltroNome);
-        filtroPanel.Controls.Add(new Label { Text = "Sexo:", AutoSize = true, Padding = new Padding(6, 6, 0, 0) });
-        filtroPanel.Controls.Add(_cmbFiltroSexo);
-        filtroPanel.Controls.Add(new Label { Text = "Entidade:", AutoSize = true, Padding = new Padding(6, 6, 0, 0) });
-        filtroPanel.Controls.Add(_cmbFiltroEntidade);
-        var btnFiltrar = new Button { Text = "Filtrar", Width = 75 };
-        btnFiltrar.Click += (_, _) => CarregarDados();
-        filtroPanel.Controls.Add(btnFiltrar);
-
-        // Botões
-        var btnPanel = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Bottom,
-            Height = 44,
-            Padding = new Padding(6),
-            FlowDirection = FlowDirection.LeftToRight
-        };
-        btnPanel.Controls.AddRange(new Control[] { btnNovo, btnEditar, btnExcluir });
+        var header    = Estilos.CriarHeader("Atletas");
+        var barraBtns = Estilos.CriarBarraBotoes(btnNovo, btnEditar, btnExcluir);
+        var filtroPanel = CriarFiltroPanel();
 
         Controls.Add(_grid);
+        Controls.Add(barraBtns);
         Controls.Add(filtroPanel);
-        Controls.Add(btnPanel);
+        Controls.Add(header);
 
         CarregarDados();
     }
+
+    private Panel CriarFiltroPanel()
+    {
+        var panel = new Panel
+        {
+            Dock      = DockStyle.Top,
+            Height    = 44,
+            BackColor = Color.White,
+            Padding   = new Padding(12, 6, 12, 6),
+        };
+        panel.Paint += (_, e) =>
+            e.Graphics.DrawLine(new Pen(Estilos.BorderColor), 0, panel.Height - 1, panel.Width, panel.Height - 1);
+
+        var flow = new FlowLayoutPanel
+        {
+            Dock          = DockStyle.Fill,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents  = false,
+        };
+
+        flow.Controls.Add(RotuloFiltro("Nome:"));
+        flow.Controls.Add(_txtFiltroNome);
+        flow.Controls.Add(RotuloFiltro("Sexo:"));
+        flow.Controls.Add(_cmbFiltroSexo);
+        flow.Controls.Add(RotuloFiltro("Entidade:"));
+        flow.Controls.Add(_cmbFiltroEntidade);
+
+        var btnFiltrar = new Button
+        {
+            Text      = "Filtrar",
+            Width     = 80,
+            Height    = 28,
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Estilos.AccentBlue,
+            ForeColor = Color.White,
+            Cursor    = Cursors.Hand,
+            Margin    = new Padding(8, 0, 0, 0),
+        };
+        btnFiltrar.FlatAppearance.BorderSize = 0;
+        btnFiltrar.Click += (_, _) => CarregarDados();
+        flow.Controls.Add(btnFiltrar);
+
+        _txtFiltroNome.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) CarregarDados(); };
+
+        panel.Controls.Add(flow);
+        return panel;
+    }
+
+    private static Label RotuloFiltro(string texto) => new()
+    {
+        Text      = texto,
+        AutoSize  = false,
+        Width     = texto.Length > 6 ? 70 : 42,
+        Height    = 28,
+        TextAlign = ContentAlignment.MiddleLeft,
+        Font      = new Font(SystemFonts.DefaultFont!.FontFamily, 9f),
+        ForeColor = Estilos.TextPrimary,
+        Margin    = new Padding(6, 0, 2, 0),
+    };
 
     private void ConfigurarGrid()
     {
@@ -75,17 +110,14 @@ internal class AtletasForm : Form
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         _grid.AutoGenerateColumns = false;
         _grid.RowHeadersVisible = false;
-        _grid.BackgroundColor = System.Drawing.SystemColors.Window;
 
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "NomeCompleto",    HeaderText = "Nome Completo",      FillWeight = 35 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "AnoNascimento",   HeaderText = "Ano Nasc.",          FillWeight = 12 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Sexo",            HeaderText = "Sexo",               FillWeight = 8  });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "CodigoFederacao", HeaderText = "Cód. Federação",     FillWeight = 18 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "NomeCompleto",    HeaderText = "Nome Completo",  FillWeight = 35 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "AnoNascimento",   HeaderText = "Ano Nasc.",      FillWeight = 12 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "Sexo",            HeaderText = "Sexo",           FillWeight = 8  });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = "CodigoFederacao", HeaderText = "Cód. Federação", FillWeight = 18 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Entidade",                    HeaderText = "Entidade",       FillWeight = 27 });
 
-        // Coluna derivada de Entidade (objeto aninhado)
-        var colEntidade = new DataGridViewTextBoxColumn { HeaderText = "Entidade", FillWeight = 27 };
-        colEntidade.DataPropertyName = "Entidade";
-        _grid.Columns.Add(colEntidade);
+        Estilos.EstilizarGrid(_grid);
     }
 
     private void ConfigurarFiltros()
@@ -112,11 +144,10 @@ internal class AtletasForm : Form
         var atletas = AtletasService.ListarComEntidade(nome, sexo, entidadeId).ToList();
         _grid.DataSource = atletas;
 
-        // Coluna Entidade: exibir sigla do objeto aninhado
         foreach (DataGridViewRow row in _grid.Rows)
         {
             if (row.DataBoundItem is Atleta a)
-                row.Cells["Entidade"].Value = a.Entidade?.Sigla ?? "-";
+                row.Cells["Entidade"].Value = a.Entidade?.Sigla ?? "—";
         }
     }
 
