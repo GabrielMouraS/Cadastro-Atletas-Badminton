@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <RootNamespace>BadmintonCadastro</RootNamespace>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AcceptNPOIOSMFLicense>true</AcceptNPOIOSMFLicense>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Data\schema.sql" />
+    <None Remove="Data\seed.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Data\schema.sql" />
+    <EmbeddedResource Include="Data\seed.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Assets\ModeloPlanilha\modelo.xlsx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <Folder Include="Models\" />
+    <Folder Include="Utils\" />
+    <Folder Include="UI\Forms\" />
+    <Folder Include="UI\Components\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.72" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.7" />
+    <PackageReference Include="NPOI" Version="2.8.0" />
+  </ItemGroup>
+
+</Project>
