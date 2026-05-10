@@ -1,4 +1,5 @@
 using System.Reflection;
+using Dapper;
 using Microsoft.Data.Sqlite;
 
 namespace BadmintonCadastro.Services;
@@ -25,6 +26,8 @@ internal static class DatabaseService
         lock (_lock)
         {
             if (_initialized) return;
+
+            DefaultTypeMap.MatchNamesWithUnderscores = true;
 
             var dir = Path.GetDirectoryName(DbPath)!;
             Directory.CreateDirectory(dir);
