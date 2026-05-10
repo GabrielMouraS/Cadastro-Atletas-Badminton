@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Cadastro-Atletas-Badminton")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0299cf661b9e9b2f4f5c017409489d7086ebba29")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+284d2a0584e395b683a7e4131554bc4269fc4cb9")]
 [assembly: System.Reflection.AssemblyProductAttribute("Cadastro-Atletas-Badminton")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Cadastro-Atletas-Badminton")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
