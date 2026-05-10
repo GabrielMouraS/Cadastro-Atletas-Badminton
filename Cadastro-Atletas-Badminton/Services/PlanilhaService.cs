@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using BadmintonCadastro.Models;
@@ -61,7 +62,7 @@ internal static class PlanilhaService
 
     public static void ExportarFicha(
         Torneio torneio,
-        Entidade entidade,
+        Entidade? entidade,      // null = todas as entidades
         TipoExportPlanilha tipoExport,
         string destinoPath)
     {
@@ -81,8 +82,7 @@ internal static class PlanilhaService
         // Carrega cópia do modelo em memória — NUNCA abre o original para escrita
         var modeloBytes = File.ReadAllBytes(ModeloPath);
         using var memStream = new MemoryStream(modeloBytes);
-        var wb = new XSSFWorkbook(memStream);
-        wb.SetForceFormulaRecalculation(true);
+        using var wb = new XSSFWorkbook(memStream);
 
         switch (tipoExport)
         {
@@ -103,21 +103,28 @@ internal static class PlanilhaService
         var dir = Path.GetDirectoryName(destinoPath);
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 
-        using var output = new FileStream(destinoPath, FileMode.Create, FileAccess.Write);
-        wb.Write(output);
+        // NPOI escreve os dados mas corrompe drawings/tema do modelo.
+        // Solução: escrever em memória e depois restaurar as entradas originais via ZIP.
+        using var outMem = new MemoryStream();
+        wb.Write(outMem, leaveOpen: true);
+        var resultado = RestaurarEntradasModelo(modeloBytes, outMem.ToArray());
+        File.WriteAllBytes(destinoPath, resultado);
     }
 
     // ─── SIMPLES ─────────────────────────────────────────────────────────────
 
     private static void EscreverSimples(
-        XSSFWorkbook wb, Entidade entidade,
+        XSSFWorkbook wb, Entidade? entidade,
         List<Inscricao> inscricoes, Dictionary<int, Atleta> atletasDict, int anoRef)
     {
         var sheet = wb.GetSheetAt(SheetSimples);
 
+        LimparSecao(sheet, SimplesStartRow, SimplesMaxRows, ColId, ColCat);
+
         var simples = inscricoes
             .Where(i => i.Categoria?.Tipo == "SIMPLES"
-                     && Resolve(i.Atleta1Id, i.Atleta1, atletasDict).EntidadeId == entidade.Id)
+                     && (entidade == null ||
+                         Resolve(i.Atleta1Id, i.Atleta1, atletasDict).EntidadeId == entidade.Id))
             .ToList();
 
         int row = SimplesStartRow;
@@ -131,14 +138,17 @@ internal static class PlanilhaService
     // ─── DUPLAS ──────────────────────────────────────────────────────────────
 
     private static void EscreverDuplas(
-        XSSFWorkbook wb, Entidade entidade,
+        XSSFWorkbook wb, Entidade? entidade,
         List<Inscricao> inscricoes, Dictionary<int, Atleta> atletasDict, int anoRef)
     {
         var sheet = wb.GetSheetAt(SheetDuplas);
 
+        LimparSecao(sheet, DuplasStartRow, DuplasMaxRows, ColId, ColSexo2);
+
         var duplas = inscricoes
             .Where(i => i.Categoria?.Tipo is "DUPLA" or "MISTA"
-                     && (Resolve(i.Atleta1Id,       i.Atleta1,  atletasDict).EntidadeId == entidade.Id
+                     && (entidade == null
+                      || Resolve(i.Atleta1Id, i.Atleta1, atletasDict).EntidadeId == entidade.Id
                       || (i.Atleta2Id.HasValue
                           && Resolve(i.Atleta2Id.Value, i.Atleta2, atletasDict).EntidadeId == entidade.Id)))
             .ToList();
@@ -165,16 +175,19 @@ internal static class PlanilhaService
     // ─── REGIONAL CLASSIFICATÓRIO ────────────────────────────────────────────
 
     private static void EscreverRegionalClass(
-        XSSFWorkbook wb, Torneio torneio, Entidade entidade,
+        XSSFWorkbook wb, Torneio torneio, Entidade? entidade,
         List<Inscricao> inscricoes, Dictionary<int, Atleta> atletasDict, int anoRef)
     {
         var sheet = wb.GetSheetAt(SheetRegionalClass);
 
         SetStr(sheet, RegHeaderTorneioRow, RegHeaderValueCol, torneio.Nome);
-        SetStr(sheet, RegHeaderClubeRow,   RegHeaderValueCol, entidade.Sigla);
+        SetStr(sheet, RegHeaderClubeRow,   RegHeaderValueCol, entidade?.Sigla ?? "Todas");
+
+        LimparSecao(sheet, RegClassStartRow, RegClassMaxRows, ColId, ColSexo2);
 
         var insc = inscricoes
-            .Where(i => Resolve(i.Atleta1Id, i.Atleta1, atletasDict).EntidadeId == entidade.Id
+            .Where(i => entidade == null
+                     || Resolve(i.Atleta1Id, i.Atleta1, atletasDict).EntidadeId == entidade.Id
                      || (i.Atleta2Id.HasValue
                          && Resolve(i.Atleta2Id.Value, i.Atleta2, atletasDict).EntidadeId == entidade.Id))
             .ToList();
@@ -195,16 +208,20 @@ internal static class PlanilhaService
     // ─── REGIONAL AMISTOSO ───────────────────────────────────────────────────
 
     private static void EscreverRegionalAmistoso(
-        XSSFWorkbook wb, Torneio torneio, Entidade entidade,
+        XSSFWorkbook wb, Torneio torneio, Entidade? entidade,
         List<Inscricao> inscricoes, Dictionary<int, Atleta> atletasDict, int anoRef)
     {
         var sheet = wb.GetSheetAt(SheetRegionalAmistoso);
 
         SetStr(sheet, RegHeaderTorneioRow, RegHeaderValueCol, torneio.Nome);
-        SetStr(sheet, RegHeaderClubeRow,   RegHeaderValueCol, entidade.Sigla);
+        SetStr(sheet, RegHeaderClubeRow,   RegHeaderValueCol, entidade?.Sigla ?? "Todas");
+
+        LimparSecao(sheet, RegAmistFedStart,   RegAmistFedMax,   ColId, ColSexo2);
+        LimparSecao(sheet, RegAmistNaFedStart, RegAmistNaFedMax, ColId, ColSexo2);
 
         var minhas = inscricoes
-            .Where(i => Resolve(i.Atleta1Id, i.Atleta1, atletasDict).EntidadeId == entidade.Id
+            .Where(i => entidade == null
+                     || Resolve(i.Atleta1Id, i.Atleta1, atletasDict).EntidadeId == entidade.Id
                      || (i.Atleta2Id.HasValue
                          && Resolve(i.Atleta2Id.Value, i.Atleta2, atletasDict).EntidadeId == entidade.Id))
             .ToList();
@@ -235,6 +252,26 @@ internal static class PlanilhaService
     }
 
     // ─── Helpers internos ────────────────────────────────────────────────────
+
+    // Apaga células de dados (sem tocar fórmulas) para não deixar linhas de exemplo do template
+    private static void LimparSecao(ISheet sheet, int startRow, int maxRows, int firstCol, int lastCol)
+    {
+        for (int r = startRow; r < startRow + maxRows; r++)
+        {
+            var row = sheet.GetRow(r);
+            if (row == null) continue;
+            for (int c = firstCol; c <= lastCol; c++)
+            {
+                var cell = row.GetCell(c);
+                if (cell == null || cell.CellType == CellType.Formula) continue;
+                // SetCellType(Blank) é bugado no NPOI XSSF; limpar com valor vazio é mais seguro
+                if (cell.CellType == CellType.Numeric)
+                    cell.SetCellValue(0d);
+                else
+                    cell.SetCellValue(string.Empty);
+            }
+        }
+    }
 
     private static void EscreverAtleta(ISheet sheet, int rowIdx, Atleta atleta, string label)
     {
@@ -282,18 +319,20 @@ internal static class PlanilhaService
 
     // ─── Label de categoria (coluna G) ───────────────────────────────────────
 
+    // Código de categoria que corresponde exatamente ao Codigo no banco
+    // Ex: SM09, DF13, DXA, SM35
     private static string ComputarLabel(Atleta atleta, Categoria categoria, int anoRef)
     {
         string faixa = atleta.AnoNascimento switch
         {
-            var a when a >= anoRef - 9  => "Sub09",
-            var a when a >= anoRef - 11 => "Sub11",
-            var a when a >= anoRef - 13 => "Sub13",
-            var a when a >= anoRef - 15 => "Sub15",
-            var a when a >= anoRef - 17 => "Sub17",
-            var a when a >= anoRef - 19 => "Sub19",
-            var a when a >  anoRef - 35 => "Adulto",
-            _                           => "+35"
+            var a when a >= anoRef - 8  => "09",
+            var a when a >= anoRef - 10 => "11",
+            var a when a >= anoRef - 12 => "13",
+            var a when a >= anoRef - 14 => "15",
+            var a when a >= anoRef - 16 => "17",
+            var a when a >= anoRef - 18 => "19",
+            var a when a >  anoRef - 35 => "A",
+            _                           => "35"
         };
 
         string prefixo = categoria.Tipo switch
@@ -305,5 +344,49 @@ internal static class PlanilhaService
         };
 
         return prefixo + faixa;
+    }
+
+    // ─── Restaura entradas que o NPOI corrompe ao reescrever ─────────────────
+    // O NPOI reescreve o XLSX inteiro mas não sabe lidar com drawings e temas.
+    // Solução: montar um novo ZIP copiando tudo do output do NPOI, mas
+    // substituindo drawings/tema/media pelas entradas originais do modelo.
+
+    private static readonly string[] _prefixosModelo =
+        ["xl/drawings/", "xl/theme/", "xl/media/"];
+
+    private static byte[] RestaurarEntradasModelo(byte[] modeloBytes, byte[] npoiBytes)
+    {
+        using var modeloZip = new ZipArchive(new MemoryStream(modeloBytes), ZipArchiveMode.Read);
+        using var npoiZip   = new ZipArchive(new MemoryStream(npoiBytes),   ZipArchiveMode.Read);
+        using var saida     = new MemoryStream();
+
+        // Entradas do modelo que devem sobrescrever a versão do NPOI
+        var deModelo = modeloZip.Entries
+            .Where(e => _prefixosModelo.Any(p => e.FullName.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
+            .ToDictionary(e => e.FullName, StringComparer.OrdinalIgnoreCase);
+
+        using (var saidaZip = new ZipArchive(saida, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            // 1. Tudo do NPOI, exceto o que o modelo vai prover
+            foreach (var e in npoiZip.Entries)
+            {
+                if (deModelo.ContainsKey(e.FullName)) continue;
+                CopiarEntrada(e, saidaZip);
+            }
+
+            // 2. Entradas originais do modelo (drawings, tema, media)
+            foreach (var e in deModelo.Values)
+                CopiarEntrada(e, saidaZip);
+        }
+
+        return saida.ToArray();
+    }
+
+    private static void CopiarEntrada(ZipArchiveEntry origem, ZipArchive destino)
+    {
+        var nova = destino.CreateEntry(origem.FullName, CompressionLevel.Optimal);
+        using var src = origem.Open();
+        using var dst = nova.Open();
+        src.CopyTo(dst);
     }
 }

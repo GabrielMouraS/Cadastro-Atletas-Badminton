@@ -73,11 +73,10 @@ internal class AtletaEditForm : Form
 
     private void ConfigurarControles()
     {
-        // Entidade
-        var entidades = EntidadesService.Listar().ToList();
-        _cmbEntidade.DataSource    = entidades;
+        // Entidade — DisplayMember/ValueMember antes do DataSource
         _cmbEntidade.DisplayMember = "Sigla";
         _cmbEntidade.ValueMember   = "Id";
+        _cmbEntidade.DataSource    = EntidadesService.Listar().ToList();
 
         // Sexo
         _cmbSexo.Items.Add("M");

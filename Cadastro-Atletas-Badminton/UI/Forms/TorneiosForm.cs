@@ -97,14 +97,14 @@ internal class TorneiosForm : Form
     {
         var torneio = Selecionado();
         if (torneio == null) { MostrarAviso("Selecione um torneio."); return; }
-        new InscricoesForm(torneio).ShowDialog(this);
+        new InscricoesForm(torneio).ShowDialog(FindForm());
     }
 
     private void BtnExportar_Click(object? s, EventArgs e)
     {
         var torneio = Selecionado();
         if (torneio == null) { MostrarAviso("Selecione um torneio."); return; }
-        new ExportarFichaForm(torneio).ShowDialog(this);
+        new ExportarFichaForm(torneio).ShowDialog(FindForm());
     }
 
     private static void MostrarErro(Exception ex) =>

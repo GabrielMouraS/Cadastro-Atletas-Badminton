@@ -10,6 +10,7 @@ internal class AtletasForm : Form
     private readonly TextBox  _txtFiltroNome     = new() { Width = 200, PlaceholderText = "Nome..." };
     private readonly ComboBox _cmbFiltroSexo     = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 80 };
     private readonly ComboBox _cmbFiltroEntidade = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 160 };
+    private readonly Label    _lblContador        = new() { AutoSize = true };
 
     public AtletasForm()
     {
@@ -19,17 +20,19 @@ internal class AtletasForm : Form
         ConfigurarGrid();
         ConfigurarFiltros();
 
-        var btnNovo    = Estilos.CriarBotao("Novo",    "novo");
-        var btnEditar  = Estilos.CriarBotao("Editar",  "editar");
-        var btnExcluir = Estilos.CriarBotao("Excluir", "excluir");
+        var btnNovo      = Estilos.CriarBotao("Novo",       "novo");
+        var btnEditar    = Estilos.CriarBotao("Editar",     "editar");
+        var btnExcluir   = Estilos.CriarBotao("Excluir",    "excluir");
+        var btnImportar  = Estilos.CriarBotao("Importar…",  "padrao");
 
-        btnNovo.Click    += BtnNovo_Click;
-        btnEditar.Click  += BtnEditar_Click;
-        btnExcluir.Click += BtnExcluir_Click;
+        btnNovo.Click     += BtnNovo_Click;
+        btnEditar.Click   += BtnEditar_Click;
+        btnExcluir.Click  += BtnExcluir_Click;
+        btnImportar.Click += BtnImportar_Click;
         _grid.CellDoubleClick += (_, _) => BtnEditar_Click(null, EventArgs.Empty);
 
         var header    = Estilos.CriarHeader("Atletas");
-        var barraBtns = Estilos.CriarBarraBotoes(btnNovo, btnEditar, btnExcluir);
+        var barraBtns = Estilos.CriarBarraBotoes(btnNovo, btnEditar, btnExcluir, btnImportar);
         var filtroPanel = CriarFiltroPanel();
 
         Controls.Add(_grid);
@@ -81,6 +84,11 @@ internal class AtletasForm : Form
         btnFiltrar.Click += (_, _) => CarregarDados();
         flow.Controls.Add(btnFiltrar);
 
+        _lblContador.Font      = new Font(SystemFonts.DefaultFont!.FontFamily, 9f, FontStyle.Bold);
+        _lblContador.ForeColor = Estilos.AccentBlue;
+        _lblContador.Margin    = new Padding(14, 5, 0, 0);
+        flow.Controls.Add(_lblContador);
+
         _txtFiltroNome.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) CarregarDados(); };
 
         panel.Controls.Add(flow);
@@ -129,10 +137,9 @@ internal class AtletasForm : Form
 
         var entidades = EntidadesService.Listar().ToList();
         entidades.Insert(0, new Entidade { Id = 0, Sigla = "Todas" });
-        _cmbFiltroEntidade.DataSource    = entidades;
         _cmbFiltroEntidade.DisplayMember = "Sigla";
         _cmbFiltroEntidade.ValueMember   = "Id";
-        _cmbFiltroEntidade.SelectedIndex = 0;
+        _cmbFiltroEntidade.DataSource    = entidades;
     }
 
     private void CarregarDados()
@@ -148,6 +155,20 @@ internal class AtletasForm : Form
         {
             if (row.DataBoundItem is Atleta a)
                 row.Cells["Entidade"].Value = a.Entidade?.Sigla ?? "—";
+        }
+
+        bool filtrado = nome != null || sexo != null || entidadeId != null;
+        if (filtrado)
+        {
+            // Conta o total sem filtros para mostrar "X de Y"
+            int total = AtletasService.ListarComEntidade().Count();
+            _lblContador.Text      = $"{atletas.Count} de {total} atleta(s)";
+            _lblContador.ForeColor = Estilos.AccentOrange;
+        }
+        else
+        {
+            _lblContador.Text      = $"{atletas.Count} atleta(s)";
+            _lblContador.ForeColor = Estilos.AccentBlue;
         }
     }
 
@@ -180,6 +201,14 @@ internal class AtletasForm : Form
         if (!ConfirmarExclusao(atleta.NomeCompleto)) return;
         try   { AtletasService.Excluir(atleta.Id); CarregarDados(); }
         catch (Exception ex) { MostrarErro(ex); }
+    }
+
+    private void BtnImportar_Click(object? s, EventArgs e)
+    {
+        using var dlg = new ImportarAtletasForm();
+        if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
+        ConfigurarFiltros();
+        CarregarDados();
     }
 
     private static void MostrarErro(Exception ex) =>

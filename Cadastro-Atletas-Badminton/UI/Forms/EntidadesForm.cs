@@ -6,7 +6,10 @@ namespace BadmintonCadastro.UI.Forms;
 
 internal class EntidadesForm : Form
 {
-    private readonly DataGridView _grid = new();
+    private readonly DataGridView _grid       = new();
+    private readonly TextBox      _txtFiltro  = new() { Width = 260, PlaceholderText = "Buscar por sigla, nome ou cidade..." };
+    private readonly Label        _lblContador = new() { AutoSize = true, ForeColor = Estilos.AccentBlue };
+    private List<Entidade>        _todas      = [];
 
     public EntidadesForm()
     {
@@ -24,15 +27,51 @@ internal class EntidadesForm : Form
         btnExcluir.Click += BtnExcluir_Click;
         _grid.CellDoubleClick += (_, _) => BtnEditar_Click(null, EventArgs.Empty);
 
-        var header   = Estilos.CriarHeader("Entidades");
-        var barraBtns = Estilos.CriarBarraBotoes(btnNovo, btnEditar, btnExcluir);
+        // Filtro ao digitar — sem botão, resposta imediata
+        _txtFiltro.TextChanged += (_, _) => AplicarFiltro();
 
-        // Ordem de adição: Fill primeiro, depois os DockStyle.Bottom e DockStyle.Top
+        var header    = Estilos.CriarHeader("Entidades");
+        var barraBtns = Estilos.CriarBarraBotoes(btnNovo, btnEditar, btnExcluir);
+        var filtroPanel = CriarFiltroPanel();
+
         Controls.Add(_grid);
         Controls.Add(barraBtns);
+        Controls.Add(filtroPanel);
         Controls.Add(header);
 
         CarregarDados();
+    }
+
+    private Panel CriarFiltroPanel()
+    {
+        var panel = new Panel
+        {
+            Dock      = DockStyle.Top,
+            Height    = 44,
+            BackColor = Color.White,
+            Padding   = new Padding(12, 6, 12, 6),
+        };
+        panel.Paint += (_, e) =>
+            e.Graphics.DrawLine(new Pen(Estilos.BorderColor), 0, panel.Height - 1, panel.Width, panel.Height - 1);
+
+        var flow = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, WrapContents = false };
+        var lbl  = new Label
+        {
+            Text      = "Buscar:",
+            AutoSize  = false,
+            Width     = 52,
+            Height    = 28,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Font      = new Font(SystemFonts.DefaultFont!.FontFamily, 9f),
+            ForeColor = Estilos.TextPrimary,
+        };
+        _lblContador.Font   = new Font(SystemFonts.DefaultFont!.FontFamily, 9f, FontStyle.Bold);
+        _lblContador.Margin = new Padding(16, 5, 0, 0);
+        flow.Controls.Add(lbl);
+        flow.Controls.Add(_txtFiltro);
+        flow.Controls.Add(_lblContador);
+        panel.Controls.Add(flow);
+        return panel;
     }
 
     private void ConfigurarGrid()
@@ -54,8 +93,32 @@ internal class EntidadesForm : Form
         Estilos.EstilizarGrid(_grid);
     }
 
-    private void CarregarDados() =>
-        _grid.DataSource = EntidadesService.Listar().ToList();
+    private void CarregarDados()
+    {
+        _todas = EntidadesService.Listar().ToList();
+        AplicarFiltro();
+    }
+
+    private void AplicarFiltro()
+    {
+        string q = _txtFiltro.Text.Trim().ToLowerInvariant();
+        List<Entidade> resultado = string.IsNullOrEmpty(q)
+            ? _todas
+            : _todas.Where(e =>
+                e.Sigla.ToLowerInvariant().Contains(q) ||
+                e.NomeCompleto.ToLowerInvariant().Contains(q) ||
+                (e.Cidade ?? "").ToLowerInvariant().Contains(q))
+              .ToList();
+
+        _grid.DataSource = resultado;
+
+        int total = _todas.Count;
+        int exibindo = resultado.Count;
+        _lblContador.Text = string.IsNullOrEmpty(q)
+            ? $"{total} entidade(s)"
+            : $"{exibindo} de {total}";
+        _lblContador.ForeColor = string.IsNullOrEmpty(q) ? Estilos.AccentBlue : Estilos.AccentOrange;
+    }
 
     private Entidade? Selecionada() =>
         _grid.SelectedRows.Count > 0 ? _grid.SelectedRows[0].DataBoundItem as Entidade : null;

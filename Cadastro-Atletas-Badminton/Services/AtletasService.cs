@@ -57,6 +57,31 @@ internal static class AtletasService
         return conn.ExecuteScalar<int>(sql, atleta);
     }
 
+    public static (int inseridos, int erros) InserirLote(IEnumerable<Atleta> atletas)
+    {
+        using var conn = DatabaseService.GetConnection();
+        conn.Open();
+        using var tx = conn.BeginTransaction();
+
+        const string sql = @"
+        INSERT INTO atletas (entidade_id, nome_completo, ano_nascimento, sexo, codigo_federacao)
+        VALUES (@EntidadeId, @NomeCompleto, @AnoNascimento, @Sexo, @CodigoFederacao);";
+
+        int inseridos = 0, erros = 0;
+        foreach (var a in atletas)
+        {
+            try
+            {
+                conn.Execute(sql, a, tx);
+                inseridos++;
+            }
+            catch { erros++; }
+        }
+
+        tx.Commit();
+        return (inseridos, erros);
+    }
+
     public static void Atualizar(Atleta atleta)
     {
         ValidarAtleta(atleta);

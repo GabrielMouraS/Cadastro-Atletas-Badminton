@@ -65,11 +65,12 @@ internal class ExportarFichaForm : Form
 
     private void ConfigurarComboBoxes()
     {
-        // Entidades
-        var entidades = EntidadesService.Listar().ToList();
-        _cmbEntidade.DataSource    = entidades;
+        // Entidades — "Todas" como primeira opção (Id=0 → null no export)
+        var lista = EntidadesService.Listar().ToList();
+        lista.Insert(0, new Entidade { Id = 0, Sigla = "Todas as entidades", NomeCompleto = "" });
         _cmbEntidade.DisplayMember = "Sigla";
         _cmbEntidade.ValueMember   = "Id";
+        _cmbEntidade.DataSource    = lista;
 
         // Tipo de exportação — depende do tipo_ficha do torneio
         if (_torneio.TipoFicha == "REGIONAL")
@@ -86,19 +87,17 @@ internal class ExportarFichaForm : Form
 
     private void BtnExportar_Click(object? s, EventArgs e)
     {
-        if (_cmbEntidade.SelectedItem is not Entidade entidade)
-        {
-            MessageBox.Show("Selecione uma entidade.", "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-
         if (_cmbTipoExp.SelectedItem is not TipoExportItem tipoItem) return;
+
+        // null = todas as entidades; entidade específica quando Id > 0
+        Entidade? entidade = _cmbEntidade.SelectedItem is Entidade ent && ent.Id > 0 ? ent : null;
+        string siglaArq   = entidade?.Sigla ?? "Todas";
 
         using var dlg = new SaveFileDialog
         {
             Title       = "Salvar ficha de inscrição",
             Filter      = "Planilha Excel (*.xlsx)|*.xlsx",
-            FileName    = $"Ficha_{entidade.Sigla}_{_torneio.Nome}_{DateTime.Now:yyyyMMdd}.xlsx",
+            FileName    = $"Ficha_{siglaArq}_{_torneio.Nome}_{DateTime.Now:yyyyMMdd}.xlsx",
             DefaultExt  = "xlsx"
         };
 

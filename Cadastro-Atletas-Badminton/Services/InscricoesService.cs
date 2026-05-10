@@ -30,7 +30,7 @@ internal static class InscricoesService
             (insc, a1, a2, cat) =>
             {
                 insc.Atleta1   = a1;
-                insc.Atleta2   = a2.Id > 0 ? a2 : null;
+                insc.Atleta2   = (a2 != null && a2.Id > 0) ? a2 : null;
                 insc.Categoria = cat;
                 return insc;
             },

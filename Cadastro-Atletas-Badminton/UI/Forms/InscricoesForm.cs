@@ -42,7 +42,6 @@ internal class InscricoesForm : Form
     private void ConfigurarGrid()
     {
         _grid.Dock = DockStyle.Fill;
-        _grid.ReadOnly = true;
         _grid.AllowUserToAddRows = false;
         _grid.AllowUserToDeleteRows = false;
         _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
@@ -51,16 +50,41 @@ internal class InscricoesForm : Form
         _grid.AutoGenerateColumns = false;
         _grid.RowHeadersVisible = false;
 
-        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "Categoria",  HeaderText = "Categoria",   FillWeight = 12 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "Atleta1",    HeaderText = "Atleta 1",    FillWeight = 25 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "Atleta2",    HeaderText = "Atleta 2",    FillWeight = 25 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "RkInterno",  HeaderText = "RK Interno",  FillWeight = 10 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "RkEstadual", HeaderText = "RK Estadual", FillWeight = 10 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "Categoria",  HeaderText = "Categoria",   FillWeight = 12, ReadOnly = true });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "Atleta1",    HeaderText = "Atleta 1",    FillWeight = 25, ReadOnly = true });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "Atleta2",    HeaderText = "Atleta 2",    FillWeight = 25, ReadOnly = true });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "RkInterno",  HeaderText = "RK Interno",  FillWeight = 10, ReadOnly = true });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "RkEstadual", HeaderText = "RK Estadual", FillWeight = 10, ReadOnly = true });
         _grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Remanej",    HeaderText = "Remanej.",    FillWeight = 8  });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "Valor",      HeaderText = "Valor (R$)",  FillWeight = 10 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn  { Name = "Valor",      HeaderText = "Valor (R$)",  FillWeight = 10, ReadOnly = true });
         _grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Pago",       HeaderText = "Pago",        FillWeight = 7  });
 
         Estilos.EstilizarGrid(_grid);
+
+        // Commit imediato ao clicar no checkbox + salvar no banco
+        _grid.CurrentCellDirtyStateChanged += (_, _) =>
+        {
+            if (_grid.CurrentCell is DataGridViewCheckBoxCell && _grid.IsCurrentCellDirty)
+                _grid.CommitEdit(DataGridViewDataErrorContexts.Commit);
+        };
+        _grid.CellValueChanged += Grid_CellValueChanged;
+    }
+
+    private void Grid_CellValueChanged(object? sender, DataGridViewCellEventArgs e)
+    {
+        if (e.RowIndex < 0) return;
+        if (_grid.Columns[e.ColumnIndex].Name is not ("Remanej" or "Pago")) return;
+
+        var insc = _grid.Rows[e.RowIndex].Tag as Inscricao;
+        if (insc == null) return;
+
+        if (_grid.Columns[e.ColumnIndex].Name == "Remanej")
+            insc.AceitaRemanejamento = _grid.Rows[e.RowIndex].Cells["Remanej"].Value is true;
+        else
+            insc.Pago = _grid.Rows[e.RowIndex].Cells["Pago"].Value is true;
+
+        try { InscricoesService.Atualizar(insc); }
+        catch (Exception ex) { MostrarErro(ex); }
     }
 
     private void CarregarDados()
@@ -89,10 +113,9 @@ internal class InscricoesForm : Form
 
     private void BtnNovo_Click(object? s, EventArgs e)
     {
-        using var dlg = new InscricaoEditForm(_torneio);
+        using var dlg = new SelecionarAtletasForm(_torneio);
         if (dlg.ShowDialog(this) != DialogResult.OK) return;
-        try   { InscricoesService.Inserir(dlg.Resultado); CarregarDados(); }
-        catch (Exception ex) { MostrarErro(ex); }
+        CarregarDados();
     }
 
     private void BtnEditar_Click(object? s, EventArgs e)
